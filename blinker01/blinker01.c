@@ -6,25 +6,25 @@ extern void PUT32 ( unsigned int, unsigned int );
 extern unsigned int GET32 ( unsigned int );
 extern void dummy ( unsigned int );
 
-#define GPFSEL1 0x20200004
-#define GPSET0  0x2020001C
-#define GPCLR0  0x20200028
+#define GPFSEL4 0x3F200010
+#define GPSET1  0x3F200020
+#define GPCLR1  0x3F20002C
 
 //-------------------------------------------------------------------------
 int notmain ( void )
 {
     unsigned int ra;
 
-    ra=GET32(GPFSEL1);
-    ra&=~(7<<18);
-    ra|=1<<18;
-    PUT32(GPFSEL1,ra);
+    ra=GET32(GPFSEL4);
+    ra&=~(7<<21);
+    ra|=1<<21;
+    PUT32(GPFSEL4,ra);
 
     while(1)
     {
-        PUT32(GPSET0,1<<16);
+        PUT32(GPSET1,1<<15);
         for(ra=0;ra<0x100000;ra++) dummy(ra);
-        PUT32(GPCLR0,1<<16);
+        PUT32(GPCLR1,1<<15);
         for(ra=0;ra<0x100000;ra++) dummy(ra);
     }
     return(0);
