@@ -14,7 +14,7 @@
 // for the SD card work with this bootloader.  Change the ARMBASE
 // below to use a different location.
 
-// #include "image_data.h"
+#include "image_data.h"
 
 extern void PUT32 ( unsigned int, unsigned int );
 extern void PUT16 ( unsigned int, unsigned int );
@@ -38,7 +38,6 @@ extern unsigned int timer_tick ( void );
 extern void timer_init ( void );
 extern unsigned int timer_tick ( void );
 
-#define DMB asm ("dmb")
 
 unsigned int MailboxWrite ( unsigned int fbinfo_addr, unsigned int channel )
 {
@@ -47,11 +46,9 @@ unsigned int MailboxWrite ( unsigned int fbinfo_addr, unsigned int channel )
     mailbox=0x3F00B880;
     while(1)
     {
-        DMB;
         if((GET32(mailbox+0x18)&0x80000000)==0) break;
     }
-    DMB;
-    PUT32(mailbox+0x20, fbinfo_addr | channel);
+    PUT32(mailbox+0x20,fbinfo_addr+channel);
     return(0);
 }
 
@@ -65,147 +62,101 @@ unsigned int MailboxRead ( unsigned int channel )
     {
         while(1)
         {
-            DMB;
             ra=GET32(mailbox+0x18);
             if((ra&0x40000000)==0) break;
         }
         //hexstrings(ra);
-        DMB;
         ra=GET32(mailbox+0x00);
         //hexstring(ra);
         if((ra&0xF)==channel) break;
     }
-    return(ra>>4);
+    return(ra);
 }
 
-struct fbinfo {
-    unsigned int width;
-    unsigned int height;
-    unsigned int virtual_width;
-    unsigned int virtual_height;
-    unsigned int pitch;
-    unsigned int depth;
-    unsigned int x_offset;
-    unsigned int y_offset;
-    volatile unsigned int *pointer;
-    unsigned int size;
-};
 
 //------------------------------------------------------------------------
 int notmain ( void )
 {
     unsigned int ra,rb;
-    // unsigned int ry,rx;
-    unsigned char attempt;
-
-    volatile struct fbinfo *fb;
+    unsigned int ry,rx;
 
     uart_init();
     hexstring(0x12345678);
     hexstring(GETPC());
     timer_init();
 
-    fb = (struct fbinfo*)0x400000;
-    // for (int i = 0; i < sizeof(struct fbinfo)/sizeof(unsigned int); i++)
-    //     PUT32(((unsigned int*)&fb)+i, 0);
+    PUT32(0x40000, 640); /* #0 Physical Width */
+    PUT32(0x40004, 480); /* #4 Physical Height */
+    PUT32(0x40008, 640); /* #8 Virtual Width */
+    PUT32(0x4000C, 480); /* #12 Virtual Height */
+    PUT32(0x40010, 0); /* #16 GPU - Pitch */
+    PUT32(0x40014, 32); /* #20 Bit Depth */
+    PUT32(0x40018, 0); /* #24 X */
+    PUT32(0x4001C, 0); /* #28 Y */
+    PUT32(0x40020, 0); /* #32 GPU - Pointer */
+    PUT32(0x40024, 0); /* #36 GPU - Size */
 
-    attempt = 0;
+
+    unsigned char attempt = 0;
     while (1) {
-        fb->width = 640;
-        fb->height = 480;
-        fb->virtual_width = 640;
-        fb->virtual_height = 480;
-        fb->pitch = 1920;
-        fb->depth = 24;
-        fb->x_offset = 0;
-        fb->y_offset = 0;
-        fb->pointer = 0;
-        fb->size = 0;
-        // PUT32(0x400000, 640); /* #0 Physical Width */
-        // PUT32(0x400004, 480); /* #4 Physical Height */
-        // PUT32(0x400008, 640); /* #8 Virtual Width */
-        // PUT32(0x40000C, 480); /* #12 Virtual Height */
-        // PUT32(0x400010, 0); /* #16 GPU - Pitch */
-        // PUT32(0x400014, 32); /* #20 Bit Depth */
-        // PUT32(0x400018, 0); /* #24 X */
-        // PUT32(0x40001C, 0); /* #28 Y */
-        // PUT32(0x400020, 0); /* #32 GPU - Pointer */
-        // PUT32(0x400024, 0); /* #36 GPU - Size */
-
-
-        MailboxWrite((unsigned)fb,1);
-        rb = MailboxRead(1);
-        
-        // hexstring(rb);
-        if (rb) continue;
-
-        
-        if (!attempt++) {
-            rb=0x400000;
-            for(ra=0;ra<10;ra++) 
-            {
-                hexstrings(rb); hexstring(GET32(rb));
-                rb+=4;
-            }
+        MailboxWrite(0xC0040000,1);
+        if (MailboxRead(1) == 1) { // returns channel on success
+            rb=0x40000;
+            if (!attempt++)
+                for(ra=0;ra<10;ra++)
+                {
+                    hexstrings(rb); hexstring(GET32(rb));
+                    rb+=4;
+                }
+            if (GET32(0x40020)) break;
         }
-
-        // rb=fb->pointer;
-        // hexstring(rb);
-        if (fb->pointer) break;
     }
-    volatile unsigned int* ip = (unsigned int*)fb;
-    for(; ip < (unsigned int*)fb+sizeof(struct fbinfo) / sizeof(unsigned int); ip++) {
-        hexstrings((unsigned int)ip); hexstring((unsigned int)*ip);
-    }
-
-    hexstring(0x42000000);
-
-    volatile unsigned int *rgb = (unsigned int*)fb->pointer;
-    while( rgb < fb->pointer + fb->size )
+    rb=0x40000;
+    for(ra=0;ra<10;ra++)
     {
-        *rgb++ = 0xFF0000FF;
-        *rgb++ = 0x00FF0000;
-        *rgb++ = 0x0000FF00;
+        hexstrings(rb); hexstring(GET32(rb));
+        rb+=4;
     }
-    // for(ra=0;ra<10000;ra++)
-    // {
-    //     PUT32(rb,~((ra&0xFF)<<0));
-    //     rb+=4;
-    // }
-    // for(ra=0;ra<10000;ra++)
-    // {
-    //     PUT32(rb,~((ra&0xFF)<<8));
-    //     rb+=4;
-    // }
-    // for(ra=0;ra<10000;ra++)
-    // {
-    //     PUT32(rb,~((ra&0xFF)<<16));
-    //     rb+=4;
-    // }
-    // for(ra=0;ra<10000;ra++)
-    // {
-    //     PUT32(rb,~((ra&0xFF)<<24));
-    //     rb+=4;
-    // }
-    // rb=fb->pointer;
-    // hexstring(rb);
-    
-    // hexstring(off);
-    // ra=0;
-    // for(ry=0;ry<480;ry++)
-    // {
-    //     for(rx=0;rx<480;rx++)
-    //     {
-    //         PUT32(rb,image_data[ra++]);
-    //         rb+=4;
-    //     }
-    //     // for(;rx<640;rx++)
-    //     // {
-    //     //     PUT32(rb,0);
-    //     //     rb+=4;
-    //     // }
-    // }
-    hexstring(0xDEADBEEF);
+
+    rb=GET32(0x40020) - 0xC0000000;
+    hexstring(rb);
+    for(ra=0;ra<10000;ra++)
+    {
+        PUT32(rb,~((ra&0xFF)<<0));
+        rb+=4;
+    }
+    for(ra=0;ra<10000;ra++)
+    {
+        PUT32(rb,~((ra&0xFF)<<8));
+        rb+=4;
+    }
+    for(ra=0;ra<10000;ra++)
+    {
+        PUT32(rb,~((ra&0xFF)<<16));
+        rb+=4;
+    }
+    for(ra=0;ra<10000;ra++)
+    {
+        PUT32(rb,~((ra&0xFF)<<24));
+        rb+=4;
+    }
+    rb=GET32(0x40020) - 0xC0000000;
+    hexstring(rb);
+    ra=0;
+    for(ry=0;ry<480;ry++)
+    {
+        for(rx=0;rx<480;rx++)
+        {
+            PUT32(rb,image_data[ra++]);
+            rb+=4;
+        }
+        for(;rx<640;rx++)
+        {
+            PUT32(rb,0);
+            rb+=4;
+        }
+    }
+
     return(0);
 }
 //-------------------------------------------------------------------------
