@@ -14,8 +14,6 @@
 // for the SD card work with this bootloader.  Change the ARMBASE
 // below to use a different location.
 
-#include "image_data.h"
-
 extern void PUT32 ( unsigned int, unsigned int );
 extern void PUT16 ( unsigned int, unsigned int );
 extern void PUT8 ( unsigned int, unsigned int );
@@ -125,45 +123,57 @@ int notmain ( void )
         rb+=4;
     }
 
-    rb=GET32(0x40020) - 0xC0000000;
-    hexstring(rb);
-    for(ra=0;ra<10000;ra++)
-    {
-        PUT32(rb,~((ra&0xFF)<<0));
-        rb+=4;
-    }
-    for(ra=0;ra<10000;ra++)
-    {
-        PUT32(rb,~((ra&0xFF)<<8));
-        rb+=4;
-    }
-    for(ra=0;ra<10000;ra++)
-    {
-        PUT32(rb,~((ra&0xFF)<<16));
-        rb+=4;
-    }
-    for(ra=0;ra<10000;ra++)
-    {
-        PUT32(rb,~((ra&0xFF)<<24));
-        rb+=4;
-    }
-    rb=GET32(0x40020) - 0xC0000000;
-    hexstring(rb);
-    ra=0;
-    for(ry=0;ry<480;ry++)
-    {
-        for(rx=0;rx<480;rx++)
-        {
-            PUT32(rb,image_data[ra++]);
-            rb+=4;
+    unsigned int cvals[3] = { 0, 0, 0 };
+    unsigned int chan = 0;
+    // unsigned int timer;
+    while(1) {
+        rb=GET32(0x40020) - 0xC0000000;
+        for(ry=0;ry<480;ry++) {
+            for(rx=0;rx<640;rx+=4) {
+                asm volatile (
+                    "str %1,[%0]\n\t"
+                    "str %2,[%0, #4]\n\t"
+                    "str %3,[%0, #8]\n\t"
+                    :
+                    : "r" (rb),
+                      "r" (cvals[0]),
+                      "r" (cvals[1]),
+                      "r" (cvals[2])
+                    : "memory");
+                rb+=12;
+            }
         }
-        // for(;rx<640;rx++)
-        // {
-        //     PUT32(rb,0);
-        //     rb+=4;
-        // }
+        switch (chan) {
+        case 0:
+            cvals[0] += 8;
+            cvals[0] &= 0xFF;
+            cvals[0] |= (cvals[0] << 24);
+            cvals[1] += 8 << 16;
+            cvals[1] &= 0xFF0000;
+            cvals[2] += 8 << 8;
+            cvals[2] &= 0xFF00;
+            break;
+        case 1:
+            cvals[1] += 8;
+            cvals[1] &= 0xFF;
+            cvals[1] |= (cvals[1] << 24);
+            cvals[2] += 8 << 16;
+            cvals[2] &= 0xFF0000;
+            cvals[0] += 8 << 8;
+            cvals[0] &= 0xFF00;
+            break;
+        case 2:
+            cvals[2] += 8;
+            cvals[2] &= 0xFF;
+            cvals[2] |= (cvals[2] << 24);
+            cvals[0] += 8 << 16;
+            cvals[0] &= 0xFF0000;
+            cvals[1] += 8 << 8;
+            cvals[1] &= 0xFF00;
+            break;
+        }
+        if (0 == cvals[0]) {if (++chan > 2) chan = 0;}
     }
-
     return(0);
 }
 //-------------------------------------------------------------------------

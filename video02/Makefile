@@ -1,7 +1,7 @@
 
 ARMGNU ?= arm-none-eabi
 
-COPS = -Wall -O2 -nostdlib -nostartfiles -ffreestanding -mcpu=cortex-a7
+COPS = -Wall -O2 -std=gnu11 -nostdlib -nostartfiles -ffreestanding -mcpu=cortex-a7
 
 gcc : kernel.img
 
@@ -21,7 +21,7 @@ clean :
 vectors.o : vectors.s
 	$(ARMGNU)-as vectors.s -o vectors.o
 
-video02.o : video02.c image_data.h
+video02.o : video02.c
 	$(ARMGNU)-gcc $(COPS) -c video02.c -o video02.o
 
 periph.o : periph.c
@@ -37,3 +37,7 @@ install : gcc
 	rm -f /Volumes/RPI/kernel.img
 	cp -v kernel.img /Volumes/RPI/kernel.img
 	diskutil eject RPI
+
+rebuild : clean all
+
+redo : clean install
