@@ -74,6 +74,10 @@ unsigned int MailboxRead ( unsigned int channel )
 #define ALT4 0x3
 #define ALT5 0x2
 
+#define GPPUD       0x3F200094
+#define GPPUDCLK0   0x3F200098
+
+
 //------------------------------------------------------------------------
 int notmain ( void )
 {
@@ -101,9 +105,29 @@ int notmain ( void )
     hexstring(*GPFSEL0);
     hexstring(*GPFSEL2);
 
+    PUT32(GPPUD, 2); // Enable pull-up
+    for(unsigned i = 0; i < 220; i++) dummy(i);
+    PUT32(GPPUDCLK0,
+          (1<<22) | (1<<27)// pull TRST and TMS up
+          | (1<<4) | (1<<25) // TDI and TCK too?
+        );
+    for(unsigned i = 0; i < 220; i++) dummy(i);
+    PUT32(GPPUD, 0);
+    PUT32(GPPUDCLK0, 0);
+
+    hexstring(0xdeadbeef);
     unsigned int dbginfo;
     asm volatile("MRC p14, 0, %0, c0, c1, 0"
-                 : "=rm" (dbginfo));
+                 : "=r" (dbginfo));
+    hexstring(dbginfo);
+
+    dbginfo |= (1 << 14); // HDBGen
+    asm volatile("MCR p14, 0, %0, c0, c2, 2"
+                 : : "r" (dbginfo));
+
+    asm volatile("MRC p14, 0, %0, c0, c1, 0"
+                 : "=r" (dbginfo));
+    hexstring(0xdeadbeef);
     hexstring(dbginfo);
     
     /* Print L2 Cache info */
