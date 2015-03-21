@@ -1,7 +1,7 @@
 
 ARMGNU ?= arm-none-eabi
 
-COPS = -Wall -O2 -std=gnu11 -nostdlib -nostartfiles -ffreestanding -mcpu=cortex-a7
+COPS = -Wall -g -O2 -std=gnu11 -nostdlib -nostartfiles -ffreestanding -mcpu=cortex-a7
 
 gcc : kernel.img
 

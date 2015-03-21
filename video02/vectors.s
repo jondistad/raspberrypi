@@ -4,8 +4,15 @@
 
 .globl _start
 _start:
-    mov sp,#0x8000
-    bl notmain
+  mrc p15, 0, r1, c0, c0, 5
+  and r1, r1, #0x3
+  cmp r1, #0
+  beq initialize
+  b hang
+
+initialize: 
+  mov sp,#0x8000
+  bl notmain
 hang: b hang
 
 .globl PUT32

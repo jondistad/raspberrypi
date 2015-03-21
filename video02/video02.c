@@ -71,6 +71,8 @@ unsigned int MailboxRead ( unsigned int channel )
     return(ra);
 }
 
+#define ALT4 0x3
+#define ALT5 0x2
 
 //------------------------------------------------------------------------
 int notmain ( void )
@@ -78,10 +80,32 @@ int notmain ( void )
     unsigned int ra,rb;
     unsigned int ry,rx;
 
+    // Set GPIO4 to ALT5
+    int *GPFSEL0 = (int*)0x3F200000;
+    *GPFSEL0 |= ALT5 << 12; //FSEL4
+
+    /* Set GPIO 22-25,27 to ALT4 */
+    int *GPFSEL2 = (int*)0x3F200008;
+    *GPFSEL2 |= ALT4 << 6; // FSEL22
+    *GPFSEL2 |= ALT4 << 9; // FSEL23
+    *GPFSEL2 |= ALT4 << 12; // FSEL24
+    *GPFSEL2 |= ALT4 << 15; // FSEL25
+    // *GPFSEL2 |= ALT4 << 18; // FSEL26
+    *GPFSEL2 |= ALT4 << 21; // FSEL27
+
+    // asm("BKPT");
+
     uart_init();
     hexstring(0x12345678);
     hexstring(GETPC());
+    hexstring(*GPFSEL0);
+    hexstring(*GPFSEL2);
 
+    unsigned int dbginfo;
+    asm volatile("MRC p14, 0, %0, c0, c1, 0"
+                 : "=rm" (dbginfo));
+    hexstring(dbginfo);
+    
     /* Print L2 Cache info */
     unsigned int l2c;
     asm ("MRC p15, 1, %0, c0, c0, 1"
