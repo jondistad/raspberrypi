@@ -1,3 +1,5 @@
 * RPi 2 differences
 ** Peripheral address spaces begins at 0x3F000000, instead of 0x20000000
 ** green LED is GPIO47, instead of GPIO16
+** VideoCore addresses are 0xC0000000 above raw addresses, even with L2 cache enabled (pretty sure...)
+*** e.g. VC 0xE000... is 0x2000... in realmem
