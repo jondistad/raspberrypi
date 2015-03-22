@@ -3,7 +3,7 @@ ARMGNU ?= arm-none-eabi
 
 COPS = -Wall -g -O2 -std=gnu11 -nostdlib -nostartfiles -ffreestanding -mcpu=cortex-a7
 
-gcc : kernel.img
+gcc : video02.bin
 
 all : gcc #clang
 
@@ -32,6 +32,9 @@ kernel.img : loader vectors.o periph.o video02.o
 	$(ARMGNU)-objdump -D video02.elf > video02.list
 	$(ARMGNU)-objcopy video02.elf -O ihex video02.hex
 	$(ARMGNU)-objcopy video02.elf -O binary kernel.img
+
+video02.bin: kernel.img
+	cp kernel.img video02.bin
 
 install : gcc
 	rm -f /Volumes/RPI/kernel.img

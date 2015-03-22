@@ -11,7 +11,7 @@ _start:
   b hang
 
 initialize: 
-  mov sp,#0x8000
+  mov sp,#0x9000
   bl notmain
 hang: b hang
 

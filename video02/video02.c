@@ -84,51 +84,9 @@ int notmain ( void )
     unsigned int ra,rb;
     unsigned int ry,rx;
 
-    // Set GPIO4 to ALT5
-    int *GPFSEL0 = (int*)0x3F200000;
-    *GPFSEL0 |= ALT5 << 12; //FSEL4
-
-    /* Set GPIO 22-25,27 to ALT4 */
-    int *GPFSEL2 = (int*)0x3F200008;
-    *GPFSEL2 |= ALT4 << 6; // FSEL22
-    *GPFSEL2 |= ALT4 << 9; // FSEL23
-    *GPFSEL2 |= ALT4 << 12; // FSEL24
-    *GPFSEL2 |= ALT4 << 15; // FSEL25
-    // *GPFSEL2 |= ALT4 << 18; // FSEL26
-    *GPFSEL2 |= ALT4 << 21; // FSEL27
-
-    // asm("BKPT");
-
     uart_init();
     hexstring(0x12345678);
     hexstring(GETPC());
-    hexstring(*GPFSEL0);
-    hexstring(*GPFSEL2);
-
-    PUT32(GPPUD, 2); // Enable pull-up
-    for(unsigned i = 0; i < 220; i++) dummy(i);
-    PUT32(GPPUDCLK0,
-          (1<<22) | (1<<27)// pull TRST and TMS up
-          | (1<<4) | (1<<25) // TDI and TCK too?
-        );
-    for(unsigned i = 0; i < 220; i++) dummy(i);
-    PUT32(GPPUD, 0);
-    PUT32(GPPUDCLK0, 0);
-
-    hexstring(0xdeadbeef);
-    unsigned int dbginfo;
-    asm volatile("MRC p14, 0, %0, c0, c1, 0"
-                 : "=r" (dbginfo));
-    hexstring(dbginfo);
-
-    dbginfo |= (1 << 14); // HDBGen
-    asm volatile("MCR p14, 0, %0, c0, c2, 2"
-                 : : "r" (dbginfo));
-
-    asm volatile("MRC p14, 0, %0, c0, c1, 0"
-                 : "=r" (dbginfo));
-    hexstring(0xdeadbeef);
-    hexstring(dbginfo);
     
     /* Print L2 Cache info */
     unsigned int l2c;
