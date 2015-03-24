@@ -129,57 +129,74 @@ int notmain ( void )
         rb+=4;
     }
 
-    unsigned int cvals[3] = { 0, 0, 0 };
-    unsigned int chan = 0;
-    // unsigned int timer;
-    while(1) {
-        rb=GET32(0x40020) - 0xC0000000;
-        for(ry=0;ry<480;ry++) {
-            for(rx=0;rx<640;rx+=4) {
-                asm volatile (
-                    "str %1,[%0]\n\t"
-                    "str %2,[%0, #4]\n\t"
-                    "str %3,[%0, #8]\n\t"
-                    :
-                    : "r" (rb),
-                      "r" (cvals[0]),
-                      "r" (cvals[1]),
-                      "r" (cvals[2])
-                    : "memory");
-                rb+=12;
-            }
+    volatile unsigned char *ltr = (unsigned char *)0x100036;
+    volatile unsigned char *framebuffer = (unsigned char*)(GET32(0x40020) - 0xC0000000);
+    int rowlen = 640 * 3;
+    int ltr_rowlen = 128*3;
+    int rows = 90;
+
+    for (int i = 0; i < 640*480*3; i++)
+        framebuffer[i] = 0;
+
+    for (int i = 0; i < rows; i++)
+        for (int j = i*rowlen; j < i*rowlen+ltr_rowlen; j++) {
+            framebuffer[j] = *ltr++;
+            asm volatile("" ::: "memory");
         }
-        switch (chan) {
-        case 0:
-            cvals[0] += 8;
-            cvals[0] &= 0xFF;
-            cvals[0] |= (cvals[0] << 24);
-            cvals[1] += 8 << 16;
-            cvals[1] &= 0xFF0000;
-            cvals[2] += 8 << 8;
-            cvals[2] &= 0xFF00;
-            break;
-        case 1:
-            cvals[1] += 8;
-            cvals[1] &= 0xFF;
-            cvals[1] |= (cvals[1] << 24);
-            cvals[2] += 8 << 16;
-            cvals[2] &= 0xFF0000;
-            cvals[0] += 8 << 8;
-            cvals[0] &= 0xFF00;
-            break;
-        case 2:
-            cvals[2] += 8;
-            cvals[2] &= 0xFF;
-            cvals[2] |= (cvals[2] << 24);
-            cvals[0] += 8 << 16;
-            cvals[0] &= 0xFF0000;
-            cvals[1] += 8 << 8;
-            cvals[1] &= 0xFF00;
-            break;
-        }
-        if (0 == cvals[0]) {if (++chan > 2) chan = 0;}
-    }
+
+
+
+    // unsigned int cvals[3] = { 0, 0, 0 };
+    // unsigned int chan = 0;
+    // // unsigned int timer;
+    // while(1) {
+    //     rb=GET32(0x40020) - 0xC0000000;
+    //     for(ry=0;ry<480;ry++) {
+    //         for(rx=0;rx<640;rx+=4) {
+    //             asm volatile (
+    //                 "str %1,[%0]\n\t"
+    //                 "str %2,[%0, #4]\n\t"
+    //                 "str %3,[%0, #8]\n\t"
+    //                 :
+    //                 : "r" (rb),
+    //                   "r" (cvals[0]),
+    //                   "r" (cvals[1]),
+    //                   "r" (cvals[2])
+    //                 : "memory");
+    //             rb+=12;
+    //         }
+    //     }
+    //     switch (chan) {
+    //     case 0:
+    //         cvals[0] += 8;
+    //         cvals[0] &= 0xFF;
+    //         cvals[0] |= (cvals[0] << 24);
+    //         cvals[1] += 8 << 16;
+    //         cvals[1] &= 0xFF0000;
+    //         cvals[2] += 8 << 8;
+    //         cvals[2] &= 0xFF00;
+    //         break;
+    //     case 1:
+    //         cvals[1] += 8;
+    //         cvals[1] &= 0xFF;
+    //         cvals[1] |= (cvals[1] << 24);
+    //         cvals[2] += 8 << 16;
+    //         cvals[2] &= 0xFF0000;
+    //         cvals[0] += 8 << 8;
+    //         cvals[0] &= 0xFF00;
+    //         break;
+    //     case 2:
+    //         cvals[2] += 8;
+    //         cvals[2] &= 0xFF;
+    //         cvals[2] |= (cvals[2] << 24);
+    //         cvals[0] += 8 << 16;
+    //         cvals[0] &= 0xFF0000;
+    //         cvals[1] += 8 << 8;
+    //         cvals[1] &= 0xFF00;
+    //         break;
+    //     }
+    //     if (0 == cvals[0]) {if (++chan > 2) chan = 0;}
+    // }
     return(0);
 }
 //-------------------------------------------------------------------------
